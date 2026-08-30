@@ -391,13 +391,33 @@
     </div>
 
     <div class="field">
+      <label for="startDate">تاريخ البداية</label>
+      <input type="date" id="startDate">
+    </div>
+
+    <fieldset>
+      <legend>طريقة تحديد الخطة</legend>
+      <div class="radio-row">
+        <label class="radio-pill"><input type="radio" name="planMode" value="juz" checked> باختيار الجزء</label>
+        <label class="radio-pill"><input type="radio" name="planMode" value="surah"> باختيار سورة البداية</label>
+      </div>
+    </fieldset>
+
+    <div></div>
+
+    <div class="field" id="juzField">
       <label for="juzSelect">رقم الجزء</label>
       <select id="juzSelect"></select>
     </div>
 
-    <div class="field">
-      <label for="startDate">تاريخ البداية</label>
-      <input type="date" id="startDate">
+    <div class="field" id="surahField" style="display:none;">
+      <label for="surahStartSelect">تبدأ الخطة من سورة</label>
+      <select id="surahStartSelect"></select>
+    </div>
+
+    <div class="field" id="surahEndField" style="display:none;">
+      <label for="surahEndSelect">تنتهي الخطة عند سورة</label>
+      <select id="surahEndSelect"></select>
     </div>
 
     <fieldset>
@@ -412,10 +432,11 @@
       <legend>أيام الحفظ</legend>
       <div class="radio-row">
         <label class="radio-pill"><input type="radio" name="days" value="daily" checked> يوميًا</label>
-        <label class="radio-pill"><input type="radio" name="days" value="sun-thu"> من الأحد إلى الخميس</label>
+        <label class="radio-pill"><input type="radio" name="days" value="sun-wed"> من الأحد إلى الأربعاء</label>
       </div>
     </fieldset>
   </div>
+  <p style="font-size:12.5px;color:#8a8272;margin:10px 2px 0;">عند اختيار "باختيار سورة البداية" تختارين سورة البداية وسورة النهاية، وتُبنى الخطة بينهما رجوعًا (السور المتاحة من الناس إلى الفاتحة).</p>
 
   <div class="divider"></div>
 
@@ -438,6 +459,63 @@ for(let i=1;i<=JUZ_COUNT;i++){
   juzSelect.appendChild(opt);
 }
 function arabicOrdinalNumber(n){ return n.toLocaleString('ar-EG'); }
+
+// أسماء السور الـ114 بالترتيب (الفهرس = رقم السورة - 1)
+const SURAH_NAMES = [
+  'الفاتحة','البقرة','آل عمران','النساء','المائدة','الأنعام','الأعراف','الأنفال','التوبة','يونس',
+  'هود','يوسف','الرعد','إبراهيم','الحجر','النحل','الإسراء','الكهف','مريم','طه',
+  'الأنبياء','الحج','المؤمنون','النور','الفرقان','الشعراء','النمل','القصص','العنكبوت','الروم',
+  'لقمان','السجدة','الأحزاب','سبأ','فاطر','يس','الصافات','ص','الزمر','غافر',
+  'فصلت','الشورى','الزخرف','الدخان','الجاثية','الأحقاف','محمد','الفتح','الحجرات','ق',
+  'الذاريات','الطور','النجم','القمر','الرحمن','الواقعة','الحديد','المجادلة','الحشر','الممتحنة',
+  'الصف','الجمعة','المنافقون','التغابن','الطلاق','التحريم','الملك','القلم','الحاقة','المعارج',
+  'نوح','الجن','المزمل','المدثر','القيامة','الإنسان','المرسلات','النبأ','النازعات','عبس',
+  'التكوير','الانفطار','المطففين','الانشقاق','البروج','الطارق','الأعلى','الغاشية','الفجر','البلد',
+  'الشمس','الليل','الضحى','الشرح','التين','العلق','القدر','البينة','الزلزلة','العاديات',
+  'القارعة','التكاثر','العصر','الهمزة','الفيل','قريش','الماعون','الكوثر','الكافرون','النصر',
+  'المسد','الإخلاص','الفلق','الناس'
+];
+
+// قائمة اختيار سورة البداية: من الناس (114) إلى البقرة (2) — بدون الفاتحة كخيار بداية، لأن سورة النهاية قد تكون هي الفاتحة.
+const surahStartSelect = document.getElementById('surahStartSelect');
+for(let n=114; n>=2; n--){
+  const opt = document.createElement('option');
+  opt.value = n;
+  opt.textContent = 'سورة ' + SURAH_NAMES[n-1] + ' (' + n.toLocaleString('ar-EG') + ')';
+  surahStartSelect.appendChild(opt);
+}
+
+// قائمة اختيار سورة النهاية: تُبنى ديناميكيًا حسب سورة البداية المختارة (من سورة البداية نفسها نزولًا إلى الفاتحة)،
+// حتى لا يُسمح باختيار سورة نهاية بعد سورة البداية (لأن اتجاه الحفظ دائمًا من الأعلى رقمًا إلى الأقل).
+const surahEndSelect = document.getElementById('surahEndSelect');
+function populateSurahEndSelect(){
+  const startVal = parseInt(surahStartSelect.value, 10);
+  const prevSelected = surahEndSelect.value ? parseInt(surahEndSelect.value, 10) : 1;
+  surahEndSelect.innerHTML = '';
+  for(let n=startVal; n>=1; n--){
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = 'سورة ' + SURAH_NAMES[n-1] + ' (' + n.toLocaleString('ar-EG') + ')';
+    surahEndSelect.appendChild(opt);
+  }
+  // نحافظ على اختيار المستخدم السابق لسورة النهاية إن كان لا يزال ضمن النطاق الجديد، وإلا نرجع للفاتحة (١) افتراضيًا.
+  surahEndSelect.value = (prevSelected <= startVal) ? String(prevSelected) : '1';
+}
+populateSurahEndSelect();
+surahStartSelect.addEventListener('change', populateSurahEndSelect);
+
+// إظهار/إخفاء حقل الجزء أو حقلي سورة البداية والنهاية حسب طريقة التحديد المختارة
+const juzField = document.getElementById('juzField');
+const surahField = document.getElementById('surahField');
+const surahEndField = document.getElementById('surahEndField');
+document.querySelectorAll('input[name=planMode]').forEach(r => {
+  r.addEventListener('change', () => {
+    const mode = document.querySelector('input[name=planMode]:checked').value;
+    juzField.style.display = (mode === 'juz') ? '' : 'none';
+    surahField.style.display = (mode === 'surah') ? '' : 'none';
+    surahEndField.style.display = (mode === 'surah') ? '' : 'none';
+  });
+});
 
 // default start date = today
 document.getElementById('startDate').valueAsDate = new Date();
@@ -545,6 +623,54 @@ async function fetchJuzAyahsComplete(juzNumber){
   return ayahs;
 }
 
+// يجلب آيات سورة واحدة كاملة عبر واجهة القرآن الكريم (تتضمن اسم السورة ورقم الصفحة لكل آية).
+// يعيد المحاولة تلقائيًا عند فشل الطلب (حتى 3 محاولات) قبل الاستسلام، لأن الخادم العام قد يرفض
+// أحيانًا طلبًا عابرًا لا خللًا حقيقيًا.
+async function fetchSurahAyahs(surahNumber, attempt){
+  attempt = attempt || 1;
+  try{
+    const url = `https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('تعذّر الاتصال بواجهة القرآن الكريم');
+    const data = await res.json();
+    if(data.code !== 200) throw new Error('تعذّر جلب بيانات السورة');
+    const surahName = data.data.name;
+    return data.data.ayahs.map(a => ({
+      surahName: surahName,
+      surahNumber: surahNumber,
+      ayahNumberInSurah: a.numberInSurah,
+      page: a.page
+    }));
+  }catch(err){
+    if(attempt < 3){
+      await new Promise(r => setTimeout(r, 400 * attempt));
+      return fetchSurahAyahs(surahNumber, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+// يجلب جميع آيات السور من سورة الفاتحة (١) إلى سورة البداية المختارة، بترتيب تصاعدي (كما تُرتَّب في المصحف).
+// كل سورة تُجلب كاملة من واجهتها الخاصة، فلا حاجة لإكمال أطرافها كما في وضع الجزء.
+// الجلب هنا تتابعي (سورة بعد سورة) وليس دفعة واحدة، حتى لا يُثقل الخادم العام بعشرات الطلبات
+// المتزامنة فيرفض بعضها، مع تحديث حالة التقدّم أولًا بأول عبر onProgress.
+// يجلب جميع آيات السور من سورة النهاية المختارة إلى سورة البداية المختارة، بترتيب تصاعدي (كما تُرتَّب في المصحف).
+// كل سورة تُجلب كاملة من واجهتها الخاصة، فلا حاجة لإكمال أطرافها كما في وضع الجزء.
+// الجلب هنا تتابعي (سورة بعد سورة) وليس دفعة واحدة، حتى لا يُثقل الخادم العام بعشرات الطلبات
+// المتزامنة فيرفض بعضها، مع تحديث حالة التقدّم أولًا بأول عبر onProgress.
+async function fetchSurahRangeAyahs(startSurah, endSurah, onProgress){
+  const all = [];
+  const total = startSurah - endSurah + 1;
+  let done = 0;
+  for(let n=endSurah; n<=startSurah; n++){
+    done++;
+    if(onProgress) onProgress(done, total);
+    const ayahs = await fetchSurahAyahs(n);
+    all.push(...ayahs);
+  }
+  return all;
+}
+
 // Group consecutive ayahs belonging to the same surah into surah-segments (in reading order).
 function groupBySurah(ayahs){
   const groups = [];
@@ -579,72 +705,66 @@ function uniquePages(ayahsList){
   return pages;
 }
 
-// Split an ayah list into two halves without breaking a single ayah in two.
-function splitHalves(ayahsList){
-  if(ayahsList.length <= 1){
-    return [ { ayahs:ayahsList, half:'كاملة', pages:uniquePages(ayahsList) } ];
-  }
-  const mid = Math.ceil(ayahsList.length/2);
-  const firstHalf = ayahsList.slice(0,mid);
-  const secondHalf = ayahsList.slice(mid);
-  return [
-    { ayahs:firstHalf, half:'النصف الأول', pages:uniquePages(firstHalf) },
-    { ayahs:secondHalf, half:'النصف الثاني', pages:uniquePages(secondHalf) }
-  ];
-}
-
 function marksEndOfSurah(ayahsList){
   const last = ayahsList[ayahsList.length-1];
   const total = SURAH_AYAH_COUNT[last.surahNumber-1];
   return last.ayahNumberInSurah === total;
 }
 
-function buildUnits(surahAyahs, amount, pageFullCount){
-  const pageGroups = groupByPage(surahAyahs); // page-groups restricted to this surah only, in order
-
-  // A page-group that doesn't cover a full physical page means the surah starts or ends mid-page
-  // (sharing that page with the previous/next surah). Rather than leaving that small fragment as
-  // its own tiny unit, merge it with the neighboring page-group within the same surah so the
-  // resulting chunk is close to a real page. This applies whether the daily amount is a full page
-  // or a half page (e.g. Surah Al-Hadid in Juz 27, where it previously left a very small "page").
-  const merged = [];
-  for(let i=0;i<pageGroups.length;i++){
-    const g = pageGroups[i];
-    const fullCount = pageFullCount[g.page] || g.ayahs.length;
-    const isPartial = g.ayahs.length < fullCount;
-
-    if(isPartial && merged.length === 0 && i+1 < pageGroups.length){
-      // Fragment at the very start of the surah: pull in ayahs from the following page.
-      const next = pageGroups[i+1];
-      merged.push({ ayahs: g.ayahs.concat(next.ayahs), pages:[g.page, next.page] });
-      i++; // next page-group already consumed
-    } else if(isPartial && merged.length > 0){
-      // Fragment at the end of the surah: attach it to the previous chunk instead of leaving it alone.
-      const prev = merged[merged.length-1];
-      prev.ayahs = prev.ayahs.concat(g.ayahs);
-      if(!prev.pages.includes(g.page)) prev.pages.push(g.page);
-    } else {
-      merged.push({ ayahs: g.ayahs.slice(), pages:[g.page] });
-    }
+// يبني وحدات الحفظ اليومية لسورة واحدة اعتمادًا على حدود الصفحات الفعلية في المصحف مباشرة.
+// يدمج مجموعة صفحة البداية أو النهاية إن كانت تحوي نصيبًا صغيرًا جدًا من آيات السورة
+// مقارنة بالصفحة المجاورة لها مباشرة (أقل من نصف نصيبها)، وذلك بضم آياتها إلى تلك الصفحة
+// المجاورة بدل بقائها مجموعة مستقلة. هكذا يكبر المقدار الفعلي بدل أن يبقى جزءًا ضئيلًا وحده
+// (كحال سورة الحديد التي قد تبدأ في آخر أسطر صفحة أغلبها للسورة السابقة).
+function mergeSmallEdgePages(pageGroups){
+  const groups = pageGroups.map(g => ({ ayahs: g.ayahs.slice() }));
+  if(groups.length <= 1) return groups;
+  if(groups[0].ayahs.length <= groups[1].ayahs.length * 0.5){
+    groups[1].ayahs = groups[0].ayahs.concat(groups[1].ayahs);
+    groups.shift();
   }
-
-  if(amount === 'full'){
-    // Each merged chunk becomes one day's unit. When a chunk had to pull in a neighboring page
-    // (so it spans more than one physical mushaf page), label it with the actual page count
-    // instead of the generic "صفحة كاملة" so the plan stays accurate.
-    return merged.map(mg => ({
-      ayahs: mg.ayahs,
-      half: null,
-      pages: mg.pages,
-      pagesLabelOverride: mg.pages.length > 1 ? pagesCountLabel(mg.pages.length) : null
-    }));
+  const n = groups.length;
+  if(n > 1 && groups[n-1].ayahs.length <= groups[n-2].ayahs.length * 0.5){
+    groups[n-2].ayahs = groups[n-2].ayahs.concat(groups[n-1].ayahs);
+    groups.pop();
   }
+  return groups;
+}
 
-  // amount === 'half': split each merged chunk into two halves.
+function makeUnit(ayahsList, halfLabel){
+  return { ayahs: ayahsList, half: halfLabel, pages: uniquePages(ayahsList) };
+}
+
+// يبني وحدات الحفظ اليومية لسورة واحدة اعتمادًا على الصفحات الفعلية للمصحف: كل صفحة فعلية
+// تمثّل مقدار "صفحة كاملة" ليوم واحد، أو تُقسَّم إلى نصفين (نصف صفحة لكل يوم) في نظام النصف.
+// أما صفحة البداية أو النهاية التي يكون نصيب السورة منها صغيرًا جدًا (كحال سورة الحديد)
+// فتُدمج أولًا مع الصفحة المجاورة عبر mergeSmallEdgePages، فيكبر مقدارها الفعلي بدل أن
+// تبقى وحدة ضئيلة قائمة بذاتها.
+function buildUnits(surahAyahs, amount){
+  const rawGroups = groupByPage(surahAyahs);
+  const groups = mergeSmallEdgePages(rawGroups);
+
   const units = [];
-  merged.forEach(mg => { splitHalves(mg.ayahs).forEach(u => units.push(u)); });
+  groups.forEach(g => {
+    if(amount === 'full'){
+      units.push(makeUnit(g.ayahs, 'كاملة'));
+    } else if(g.ayahs.length <= 1){
+      units.push(makeUnit(g.ayahs, 'كاملة'));
+    } else {
+      const mid = Math.ceil(g.ayahs.length / 2);
+      units.push(makeUnit(g.ayahs.slice(0, mid), 'النصف الأول'));
+      units.push(makeUnit(g.ayahs.slice(mid), 'النصف الثاني'));
+    }
+  });
+
+  // إن لم ينتج عن نظام "النصف" سوى وحدة واحدة فعليًا (سورة قصيرة جدًا)، فهي صفحة كاملة لا نصف.
+  if(amount === 'half' && units.length === 1){
+    units[0].half = 'كاملة';
+  }
+
   return units;
 }
+
 
 function surahRangeLabel(ayahsList){
   const first = ayahsList[0];
@@ -667,8 +787,8 @@ function pageLabel(pagesArr){
 function nextValidDate(d, mode){
   const nd = new Date(d);
   nd.setDate(nd.getDate()+1);
-  if(mode === 'sun-thu'){
-    while(nd.getDay() === 5 || nd.getDay() === 6){ // Friday=5, Saturday=6
+  if(mode === 'sun-wed'){
+    while(nd.getDay() === 4 || nd.getDay() === 5 || nd.getDay() === 6){ // Thursday=4, Friday=5, Saturday=6
       nd.setDate(nd.getDate()+1);
     }
   }
@@ -681,7 +801,10 @@ function formatDateAr(d){
 
 async function generatePlan(){
   const name = document.getElementById('studentName').value.trim();
+  const planMode = document.querySelector('input[name=planMode]:checked').value;
   const juz = parseInt(juzSelect.value,10);
+  const surahStart = parseInt(surahStartSelect.value,10);
+  const surahEnd = parseInt(surahEndSelect.value,10);
   const amount = document.querySelector('input[name=amount]:checked').value;
   const daysMode = document.querySelector('input[name=days]:checked').value;
   const startDateVal = document.getElementById('startDate').value;
@@ -690,24 +813,29 @@ async function generatePlan(){
 
   if(!name){ statusEl.textContent='الرجاء إدخال اسم الطالب.'; statusEl.className='status err'; return; }
   if(!startDateVal){ statusEl.textContent='الرجاء تحديد تاريخ البداية.'; statusEl.className='status err'; return; }
+  if(planMode === 'surah' && surahEnd > surahStart){ statusEl.textContent='سورة النهاية يجب أن تكون في نفس سورة البداية أو قبلها.'; statusEl.className='status err'; return; }
 
   statusEl.className='status';
-  statusEl.textContent='جارٍ جلب بيانات الجزء من واجهة القرآن الكريم...';
+  statusEl.textContent = planMode === 'juz'
+    ? 'جارٍ جلب بيانات الجزء من واجهة القرآن الكريم...'
+    : 'جارٍ جلب بيانات السور من واجهة القرآن الكريم...';
   btn.disabled = true;
 
   try{
-    const ayahs = await fetchJuzAyahsComplete(juz);
+    const ayahs = planMode === 'juz'
+      ? await fetchJuzAyahsComplete(juz)
+      : await fetchSurahRangeAyahs(surahStart, surahEnd, (n, total) => {
+          statusEl.textContent = 'جارٍ جلب السور... (' + n.toLocaleString('ar-EG') + ' من ' + total.toLocaleString('ar-EG') + ')';
+        });
 
-    // عدد الآيات الكامل لكل صفحة فعلية في الجزء (بغض النظر عن السورة) - يُستخدم لاكتشاف الأجزاء
-    // الصغيرة من الصفحة عند بداية أو نهاية سورة، حتى لا يخرج "نصف الصفحة" قليلًا جدًا.
-    const pageFullCount = {};
-    groupByPage(ayahs).forEach(pg => { pageFullCount[pg.page] = pg.ayahs.length; });
-
-    // نبدأ من آخر سورة في الجزء ونتراجع نحو أول سورة فيه، على أن يبدأ حفظ كل سورة من أول آية فيها.
+    // نبدأ من آخر سورة ونتراجع نحو أول سورة، على أن يبدأ حفظ كل سورة من أول آية فيها.
     const surahGroups = groupBySurah(ayahs).reverse();
     let units = [];
 
-    if(juz === SHORT_SURAHS_JUZ){
+    // السور القصيرة (من الضحى ٩٣ إلى الناس ١١٤) تُعامَل بمقياس خاص (بالصفحات) أينما وردت ضمن النطاق المختار.
+    const hasShortSurahs = surahGroups.some(sg => sg.surahNumber >= SHORT_SURAHS_FROM && sg.surahNumber <= SHORT_SURAHS_TO);
+
+    if(hasShortSurahs){
       // نجمع آيات نطاق السور القصيرة معًا (قد تمتد عبر عدة سور متتالية) ونبني وحدات صفحات لها،
       // وما تبقى من الجزء يُعامل بالطريقة المعتادة (صفحة/نصف صفحة).
       const targetPages = amount === 'full' ? 4 : 2;
@@ -723,13 +851,13 @@ async function generatePlan(){
           specialBatch.push(...sg.ayahs);
         } else {
           flushSpecial();
-          units.push(...buildUnits(sg.ayahs, amount, pageFullCount));
+          units.push(...buildUnits(sg.ayahs, amount));
         }
       });
       flushSpecial();
     } else {
       surahGroups.forEach(sg => {
-        units.push(...buildUnits(sg.ayahs, amount, pageFullCount));
+        units.push(...buildUnits(sg.ayahs, amount));
       });
     }
 
@@ -737,9 +865,9 @@ async function generatePlan(){
 
     // schedule dates
     let currentDate = new Date(startDateVal + 'T00:00:00');
-    // If chosen mode excludes Fri/Sat, make sure the very first day itself is valid; if not, push forward.
-    if(daysMode === 'sun-thu'){
-      while(currentDate.getDay() === 5 || currentDate.getDay() === 6){
+    // If chosen mode excludes Thu/Fri/Sat, make sure the very first day itself is valid; if not, push forward.
+    if(daysMode === 'sun-wed'){
+      while(currentDate.getDay() === 4 || currentDate.getDay() === 5 || currentDate.getDay() === 6){
         currentDate = nextValidDate(currentDate, daysMode);
       }
     }
@@ -761,26 +889,29 @@ async function generatePlan(){
       return row;
     });
 
-    renderPlan({ name, juz, amount, daysMode, rows });
+    renderPlan({ name, planMode, juz, surahStart, surahEnd, amount, daysMode, rows, hasShortSurahs });
     statusEl.textContent = 'تم إنشاء الخطة بنجاح — عدد الأيام: ' + rows.length.toLocaleString('ar-EG');
     document.getElementById('printBtn').style.display = 'inline-block';
   }catch(err){
     console.error(err);
     statusEl.className='status err';
-    statusEl.innerHTML = 'تعذّر الاتصال بواجهة بيانات القرآن الكريم.<br>' +
-      'إن كنت تشاهد هذه الصفحة داخل معاينة تطبيق Claude فهذا متوقع، لأن المعاينة تمنع الاتصال بمواقع خارجية لأسباب أمنية.<br>' +
-      '<b>الحل:</b> حمّل الملف إلى جهازك ثم افتحه مباشرة من متصفح Chrome أو Edge (خارج تطبيق Claude)، وتأكد من اتصالك بالإنترنت.';
+    statusEl.innerHTML = 'تعذّر الاتصال بواجهة بيانات القرآن الكريم بعد عدة محاولات.<br>' +
+      'إن كنت تشاهد هذه الصفحة داخل معاينة تطبيق Claude فهذا متوقع، لأن المعاينة تمنع الاتصال بمواقع خارجية لأسباب أمنية — حمّل الملف وافتحه من متصفح Chrome أو Edge خارج التطبيق.<br>' +
+      'أما إذا كنت تفتحها من متصفح مباشرة وما زالت المشكلة قائمة، فتأكد من اتصالك بالإنترنت وحاول مرة أخرى بعد قليل، فقد يكون الخادم العام مزدحمًا مؤقتًا.';
   }finally{
     btn.disabled = false;
   }
 }
 
-function renderPlan({name, juz, amount, daysMode, rows}){
+function renderPlan({name, planMode, juz, surahStart, surahEnd, amount, daysMode, rows, hasShortSurahs}){
   const wrap = document.getElementById('plan-wrap');
   const today = new Date();
 
-  const daysModeLabel = daysMode === 'daily' ? 'يوميًا' : 'من الأحد إلى الخميس';
+  const daysModeLabel = daysMode === 'daily' ? 'يوميًا' : 'من الأحد إلى الأربعاء';
   const amountModeLabel = amount === 'full' ? 'صفحة يوميًا' : 'نصف صفحة يوميًا';
+  const scopeLabel = planMode === 'juz'
+    ? 'الجزء: <b>' + juz.toLocaleString('ar-EG') + '</b>'
+    : 'من سورة <b>' + SURAH_NAMES[surahStart-1] + '</b> إلى سورة <b>' + SURAH_NAMES[surahEnd-1] + '</b>';
 
   const rowsHtml = rows.map(r => {
     const isWeekend = (r.date.getDay() === 5 || r.date.getDay() === 6);
@@ -805,11 +936,11 @@ function renderPlan({name, juz, amount, daysMode, rows}){
         <h3>خطة حفظ القرآن الكريم</h3>
         <div class="meta">
           حلقة نشاط النسيم<br>
-          الطالب: <b>${escapeHtml(name)}</b> &nbsp;|&nbsp; الجزء: <b>${juz.toLocaleString('ar-EG')}</b><br>
+          الطالب: <b>${escapeHtml(name)}</b> &nbsp;|&nbsp; ${scopeLabel}<br>
           نظام الحفظ: <b>${amountModeLabel}</b> &nbsp;|&nbsp; أيام الحفظ: <b>${daysModeLabel}</b><br>
-          اتجاه الحفظ: <b>من آخر سورة في الجزء إلى أولها، وحفظ كل سورة يبدأ من آيتها الأولى</b><br>
-          ملاحظة: أي سورة تبدأ أو تنتهي داخل هذا الجزء تُحفظ كاملة، حتى لو كان جزء منها يقع أصلًا ضمن جزء مجاور.
-          ${juz === 30 ? '<br>ملاحظة: في السور القصيرة (من الضحى إلى الناس) يُحتسب المقدار اليومي بعدد الصفحات (صفحتان بدل نصف صفحة، أو 4 صفحات بدل صفحة كاملة).' : ''}
+          اتجاه الحفظ: <b>من آخر سورة في النطاق المختار إلى أولها، وحفظ كل سورة يبدأ من آيتها الأولى</b><br>
+          ${planMode === 'juz' ? 'ملاحظة: أي سورة تبدأ أو تنتهي داخل هذا الجزء تُحفظ كاملة، حتى لو كان جزء منها يقع أصلًا ضمن جزء مجاور.' : ''}
+          ${hasShortSurahs ? '<br>ملاحظة: في السور القصيرة (من الضحى إلى الناس) يُحتسب المقدار اليومي بعدد الصفحات (صفحتان بدل نصف صفحة، أو 4 صفحات بدل صفحة كاملة).' : ''}
         </div>
       </div>
       <div class="badge">تاريخ الإصدار: ${formatDateAr(today)}</div>
