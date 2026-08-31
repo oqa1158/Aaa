@@ -423,16 +423,22 @@
     <fieldset>
       <legend>مقدار الحفظ اليومي</legend>
       <div class="radio-row">
-        <label class="radio-pill"><input type="radio" name="amount" value="full" checked> صفحة يوميًا</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="half"> نصف صفحة يوميًا</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="half"> نصف صفحة</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="full" checked> صفحة</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="2"> صفحتان</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="3"> ٣ صفحات</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="4"> ٤ صفحات</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="5"> ٥ صفحات</label>
+        <label class="radio-pill"><input type="radio" name="amount" value="6"> ٦ صفحات</label>
       </div>
     </fieldset>
 
     <fieldset>
       <legend>أيام الحفظ</legend>
       <div class="radio-row">
-        <label class="radio-pill"><input type="radio" name="days" value="daily" checked> يوميًا</label>
+        <label class="radio-pill"><input type="radio" name="days" value="daily" checked> كل يوم</label>
         <label class="radio-pill"><input type="radio" name="days" value="sun-wed"> من الأحد إلى الأربعاء</label>
+        <label class="radio-pill"><input type="radio" name="days" value="sat-wed"> من السبت إلى الأربعاء</label>
       </div>
     </fieldset>
   </div>
@@ -744,25 +750,31 @@ function buildUnits(surahAyahs, amount){
   const rawGroups = groupByPage(surahAyahs);
   const groups = mergeSmallEdgePages(rawGroups);
 
-  const units = [];
-  groups.forEach(g => {
-    if(amount === 'full'){
-      units.push(makeUnit(g.ayahs, 'كاملة'));
-    } else if(g.ayahs.length <= 1){
-      units.push(makeUnit(g.ayahs, 'كاملة'));
-    } else {
-      const mid = Math.ceil(g.ayahs.length / 2);
-      units.push(makeUnit(g.ayahs.slice(0, mid), 'النصف الأول'));
-      units.push(makeUnit(g.ayahs.slice(mid), 'النصف الثاني'));
-    }
-  });
-
-  // إن لم ينتج عن نظام "النصف" سوى وحدة واحدة فعليًا (سورة قصيرة جدًا)، فهي صفحة كاملة لا نصف.
-  if(amount === 'half' && units.length === 1){
-    units[0].half = 'كاملة';
+  if(amount === 'full'){
+    return groups.map(g => makeUnit(g.ayahs, 'كاملة'));
   }
 
-  return units;
+  if(amount === 'half'){
+    const units = [];
+    groups.forEach(g => {
+      if(g.ayahs.length <= 1){
+        units.push(makeUnit(g.ayahs, 'كاملة'));
+      } else {
+        const mid = Math.ceil(g.ayahs.length / 2);
+        units.push(makeUnit(g.ayahs.slice(0, mid), 'النصف الأول'));
+        units.push(makeUnit(g.ayahs.slice(mid), 'النصف الثاني'));
+      }
+    });
+    // إن لم ينتج عن نظام "النصف" سوى وحدة واحدة فعليًا (سورة قصيرة جدًا)، فهي صفحة كاملة لا نصف.
+    if(units.length === 1){
+      units[0].half = 'كاملة';
+    }
+    return units;
+  }
+
+  // مقدار يومي من عدة صفحات (٢ إلى ٦ صفحات): نجمع صفحات متتالية حتى الوصول إلى العدد المطلوب.
+  const N = parseInt(amount, 10);
+  return buildSpecialUnits(surahAyahs, N);
 }
 
 
@@ -789,6 +801,10 @@ function nextValidDate(d, mode){
   nd.setDate(nd.getDate()+1);
   if(mode === 'sun-wed'){
     while(nd.getDay() === 4 || nd.getDay() === 5 || nd.getDay() === 6){ // Thursday=4, Friday=5, Saturday=6
+      nd.setDate(nd.getDate()+1);
+    }
+  } else if(mode === 'sat-wed'){
+    while(nd.getDay() === 4 || nd.getDay() === 5){ // Thursday=4, Friday=5
       nd.setDate(nd.getDate()+1);
     }
   }
@@ -838,7 +854,7 @@ async function generatePlan(){
     if(hasShortSurahs){
       // نجمع آيات نطاق السور القصيرة معًا (قد تمتد عبر عدة سور متتالية) ونبني وحدات صفحات لها،
       // وما تبقى من الجزء يُعامل بالطريقة المعتادة (صفحة/نصف صفحة).
-      const targetPages = amount === 'full' ? 4 : 2;
+      const targetPages = amount === 'half' ? 2 : (amount === 'full' ? 4 : parseInt(amount, 10) * 4);
       let specialBatch = [];
       const flushSpecial = () => {
         if(specialBatch.length){
@@ -868,6 +884,10 @@ async function generatePlan(){
     // If chosen mode excludes Thu/Fri/Sat, make sure the very first day itself is valid; if not, push forward.
     if(daysMode === 'sun-wed'){
       while(currentDate.getDay() === 4 || currentDate.getDay() === 5 || currentDate.getDay() === 6){
+        currentDate = nextValidDate(currentDate, daysMode);
+      }
+    } else if(daysMode === 'sat-wed'){
+      while(currentDate.getDay() === 4 || currentDate.getDay() === 5){
         currentDate = nextValidDate(currentDate, daysMode);
       }
     }
@@ -907,8 +927,8 @@ function renderPlan({name, planMode, juz, surahStart, surahEnd, amount, daysMode
   const wrap = document.getElementById('plan-wrap');
   const today = new Date();
 
-  const daysModeLabel = daysMode === 'daily' ? 'يوميًا' : 'من الأحد إلى الأربعاء';
-  const amountModeLabel = amount === 'full' ? 'صفحة يوميًا' : 'نصف صفحة يوميًا';
+  const daysModeLabel = daysMode === 'daily' ? 'كل يوم' : (daysMode === 'sun-wed' ? 'من الأحد إلى الأربعاء' : 'من السبت إلى الأربعاء');
+  const amountModeLabel = amount === 'full' ? 'صفحة يوميًا' : (amount === 'half' ? 'نصف صفحة يوميًا' : pagesCountLabel(parseInt(amount,10)) + ' يوميًا');
   const scopeLabel = planMode === 'juz'
     ? 'الجزء: <b>' + juz.toLocaleString('ar-EG') + '</b>'
     : 'من سورة <b>' + SURAH_NAMES[surahStart-1] + '</b> إلى سورة <b>' + SURAH_NAMES[surahEnd-1] + '</b>';
