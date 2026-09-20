@@ -556,10 +556,10 @@
         <input type="date" id="startDateA">
       </div>
 
-      <div class="field" id="endDateFieldA" style="display:none;">
+      <div class="field" id="endDateFieldA">
         <label for="endDateA">تاريخ نهاية الخطة (اختياري)</label>
         <input type="date" id="endDateA">
-        <span style="font-size:12px;color:#8a8272;line-height:1.6;">إذا انتهت المراجعة قبل هذا التاريخ تُعاد من البداية. اتركه فارغًا لدورة واحدة فقط.</span>
+        <span id="endDateHintA" style="font-size:12px;color:#8a8272;line-height:1.6;">اتركه فارغًا لتستمر الخطة حتى نهاية الجزء أو السور المختارة.</span>
       </div>
 
       <fieldset>
@@ -630,7 +630,7 @@
       <div class="field" id="endDateFieldB" style="">
         <label for="endDateB">تاريخ نهاية الخطة (اختياري)</label>
         <input type="date" id="endDateB">
-        <span style="font-size:12px;color:#8a8272;line-height:1.6;">تُعاد المراجعة من البداية حتى هذا التاريخ. اتركه فارغًا لتنتهي مع نهاية خطة الحفظ.</span>
+        <span style="font-size:12px;color:#8a8272;line-height:1.6;">تُعاد المراجعة من البداية حتى هذا التاريخ. اتركه فارغًا لتنتهي المراجعة مع نهاية خطة الحفظ.</span>
       </div>
 
       <fieldset>
@@ -874,7 +874,9 @@ function applyKindLabels(kind){
   document.getElementById('cfgTitleA').innerHTML = showBoth
     ? '<span class="num">٢</span> بيانات خطة الحفظ'
     : '<span class="num">٢</span> بيانات الخطة';
-  document.getElementById('endDateFieldA').style.display = (kind === 'review') ? '' : 'none';
+  document.getElementById('endDateHintA').textContent = (kind === 'review')
+    ? 'إذا انتهت المراجعة قبل هذا التاريخ تُعاد من البداية. اتركه فارغًا لتُنشأ الخطة تلقائيًا لمدة ٣٠ يومًا من تاريخ البداية.'
+    : 'اتركه فارغًا لتستمر الخطة حتى نهاية الجزء أو السور المختارة.';
   setJuzMulti('A', kind === 'review'); // في خطة المراجعة المستقلة يمكن اختيار أكثر من جزء
   document.getElementById('amountLegendA').textContent = 'مقدار ' + wordA + ' اليومي';
   document.getElementById('daysLegendA').textContent = 'أيام ' + wordA;
@@ -1313,20 +1315,20 @@ async function buildRowsForConfig(cfg, progressLabel, statusEl, isReview, endLim
     }
   }
 
-  // خطة المراجعة: إن انتهت الوحدات قبل نهاية الخطة تُعاد من البداية (دورة جديدة) حتى تاريخ النهاية.
-  // تاريخ النهاية إما يحدده المستخدم (فيُقطع عنده)، أو يأتي تلقائيًا من نهاية خطة الحفظ (فتُكمَّل به الدورات فقط ولا تُقطع الدورة الأولى).
-  let endDate = null, explicitEnd = false;
-  if(isReview){
-    if(cfg.endDateVal){ endDate = new Date(cfg.endDateVal + 'T00:00:00'); explicitEnd = true; }
-    else if(endLimit){ endDate = new Date(endLimit); }
-  }
+  // تاريخ نهاية الخطة (لجميع أنواع الخطط): يحدده المستخدم، أو يأتي من تاريخ نهاية خطة الحفظ (في خطة المراجعة ضمن "الاثنتان معًا")،
+  // وإن لم يوجد فالخطة تلقائيًا ٣٠ يومًا من تاريخ البداية. خطة المراجعة تُعاد من البداية إن انتهت وحداتها قبل تاريخ النهاية.
+  // الحفظ بلا تاريخ نهاية: يستمر حتى نهاية الجزء/السور المختارة (بلا حد ٣٠ يومًا). المراجعة بلا تاريخ نهاية: ٣٠ يومًا من البداية.
+  let endDate = null;
+  if(cfg.endDateVal){ endDate = new Date(cfg.endDateVal + 'T00:00:00'); }
+  else if(endLimit){ endDate = new Date(endLimit); }
+  else if(isReview){ endDate = new Date(cfg.startDateVal + 'T00:00:00'); endDate.setDate(endDate.getDate() + 29); }
 
   const rows = [];
   let cycle = 1, unitIdx = 0;
   while(rows.length < 3000){
-    if(endDate && currentDate > endDate && rows.length > 0 && (explicitEnd || cycle > 1)) break;
+    if(endDate && currentDate > endDate && rows.length > 0) break;
     if(unitIdx >= units.length){
-      if(!endDate || currentDate > endDate) break;
+      if(!isReview) break;
       unitIdx = 0; cycle++;
     }
     const u = units[unitIdx];
