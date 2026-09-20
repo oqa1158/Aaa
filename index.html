@@ -138,6 +138,38 @@
   }
   .radio-pill input{accent-color:var(--deep-2);}
 
+  /* شبكة اختيار عدّة أجزاء (خطة المراجعة) */
+  .juz-multi{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;}
+  .juz-chip{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    border:1.5px solid var(--line);background:#fff;
+    padding:8px 6px;border-radius:10px;cursor:pointer;font-size:13.5px;
+    transition:.15s;user-select:none;
+  }
+  .juz-chip:has(input:checked){
+    border-color:var(--deep-2);background:#e9f3ef;color:var(--deep);font-weight:700;
+  }
+  .juz-chip input{accent-color:var(--deep-2);margin:0;}
+  .juz-label-row{display:flex;align-items:center;gap:8px;}
+  .info-btn{
+    width:22px;height:22px;border-radius:50%;padding:0;flex:none;
+    border:1.5px solid var(--deep-2);background:#fff;color:var(--deep-2);
+    font-size:13px;font-weight:700;line-height:1;cursor:pointer;
+    display:none;align-items:center;justify-content:center;font-family:inherit;
+  }
+  .info-btn:hover,.info-btn.open{background:var(--deep-2);color:#fff;}
+  .info-pop{
+    background:#e9f3ef;border:1px solid var(--deep-2);color:var(--deep);
+    border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;
+    width:fit-content;max-width:100%;
+  }
+  .juz-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px;}
+  .juz-tools button{
+    background:none;border:none;padding:0;color:var(--deep-2);
+    font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;
+  }
+  .juz-tools .juz-count{font-size:12.5px;color:#8a8272;}
+
   .divider{height:1px;background:var(--line);margin:26px 0;}
 
   .actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:8px;}
@@ -311,6 +343,56 @@
     min-height:18px; margin-top:10px;
   }
 
+  /* ===== Plan-kind chooser (memorize / review / both) ===== */
+  body.kind-pending > .topbar,
+  body.kind-pending > .card,
+  body.kind-pending > #plan-wrap{
+    display:none !important;
+  }
+  #kindOverlay{
+    position:fixed; inset:0;
+    background: linear-gradient(160deg, var(--deep) 0%, #0a2b25 100%);
+    display:none; align-items:center; justify-content:center;
+    z-index:9998;
+    padding:20px;
+  }
+  body.kind-pending:not(.locked) #kindOverlay{ display:flex; }
+  .kind-box{ max-width:420px; }
+  .kind-options{ display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+  .kind-btn{
+    font-family:'Tajawal',sans-serif;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:#fff;
+    border:1.5px solid var(--line);
+    padding:14px 16px;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:700;
+    color:var(--deep);
+    cursor:pointer;
+    transition:.15s;
+  }
+  .kind-btn:hover{ border-color:var(--deep-2); background:#e9f3ef; }
+  .kind-emoji{ font-size:20px; }
+
+  #changeKindBtn{
+    font-family:'Tajawal',sans-serif;
+    background:transparent;
+    border:1px solid var(--gold-light);
+    color:#fbf6e8;
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12.5px;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  #changeKindBtn:hover{ background:rgba(255,255,255,.1); }
+
+  .contact-footnote{ font-weight:700; color:var(--deep); margin-top:2px; }
+
+  .plan-sheet + .plan-sheet{ margin-top:26px; }
+  .page-break{ break-before: page; }
+
   /* Print */
   @media print{
     body{background:#fff;padding:0;}
@@ -321,11 +403,13 @@
     table.plan-table th{background:#0f3d34 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .weekend-row{background:#f3e9d8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     table.plan-table tbody tr:nth-child(even){background:#faf7ef !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page-break{ page-break-before: always; }
+    .plan-sheet + .plan-sheet{ margin-top:0; }
     @page{ size:A4; margin:14mm 12mm; }
   }
 </style>
 </head>
-<body class="locked">
+<body class="locked kind-pending">
 
 <div id="lockOverlay">
   <div class="lock-box">
@@ -375,74 +459,165 @@
 })();
 </script>
 
+<div id="kindOverlay">
+  <div class="lock-box kind-box">
+    <div class="lock-icon">📖</div>
+    <h2>اختر نوع الخطة</h2>
+    <p class="hint">اختر إن كنت تريد إنشاء خطة حفظ، أو خطة مراجعة، أو الاثنتين معًا لهذا الطالب.</p>
+    <div class="kind-options">
+      <button type="button" class="kind-btn" data-kind="memorize"><span class="kind-emoji">📖</span> خطة حفظ</button>
+      <button type="button" class="kind-btn" data-kind="review"><span class="kind-emoji">🔁</span> خطة مراجعة</button>
+      <button type="button" class="kind-btn" data-kind="both"><span class="kind-emoji">📖🔁</span> الاثنتان معًا (حفظ ومراجعة)</button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="eyebrow">حلقة نشاط النسيم لتحفيظ القرآن الكريم</div>
-  <h1>مُنشئ خطة الحفظ</h1>
-  <p class="sub">أدخل بيانات الطالب وسيتم توليد جدول حفظ كامل تلقائيًا من بيانات المصحف الشريف.</p>
+  <h1 id="mainTitle">مُنشئ خطة الحفظ</h1>
+  <p class="sub" id="mainSub">أدخل بيانات الطالب وسيتم توليد جدول حفظ كامل تلقائيًا من بيانات المصحف الشريف.</p>
+  <button type="button" id="changeKindBtn" class="no-print">تغيير نوع الخطة (حفظ / مراجعة)</button>
 </div>
 
 <div class="card no-print">
-  <h2 class="section-title"><span class="num">١</span> بيانات الطالب والخطة</h2>
-
+  <h2 class="section-title"><span class="num">١</span> بيانات الطالب</h2>
   <div class="grid">
     <div class="field">
       <label for="studentName">اسم الطالب</label>
       <input type="text" id="studentName" placeholder="اكتب اسم الطالب هنا">
     </div>
-
-    <div class="field">
-      <label for="startDate">تاريخ البداية</label>
-      <input type="date" id="startDate">
-    </div>
-
-    <fieldset>
-      <legend>طريقة تحديد الخطة</legend>
-      <div class="radio-row">
-        <label class="radio-pill"><input type="radio" name="planMode" value="juz" checked> باختيار الجزء</label>
-        <label class="radio-pill"><input type="radio" name="planMode" value="surah"> باختيار سورة البداية</label>
-      </div>
-    </fieldset>
-
-    <div></div>
-
-    <div class="field" id="juzField">
-      <label for="juzSelect">رقم الجزء</label>
-      <select id="juzSelect"></select>
-    </div>
-
-    <div class="field" id="surahField" style="display:none;">
-      <label for="surahStartSelect">تبدأ الخطة من سورة</label>
-      <select id="surahStartSelect"></select>
-    </div>
-
-    <div class="field" id="surahEndField" style="display:none;">
-      <label for="surahEndSelect">تنتهي الخطة عند سورة</label>
-      <select id="surahEndSelect"></select>
-    </div>
-
-    <fieldset>
-      <legend>مقدار الحفظ اليومي</legend>
-      <div class="radio-row">
-        <label class="radio-pill"><input type="radio" name="amount" value="half"> نصف صفحة</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="full" checked> صفحة</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="2"> صفحتان</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="3"> ٣ صفحات</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="4"> ٤ صفحات</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="5"> ٥ صفحات</label>
-        <label class="radio-pill"><input type="radio" name="amount" value="6"> ٦ صفحات</label>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>أيام الحفظ</legend>
-      <div class="radio-row">
-        <label class="radio-pill"><input type="radio" name="days" value="daily" checked> كل يوم</label>
-        <label class="radio-pill"><input type="radio" name="days" value="sun-wed"> من الأحد إلى الأربعاء</label>
-        <label class="radio-pill"><input type="radio" name="days" value="sat-wed"> من السبت إلى الأربعاء</label>
-      </div>
-    </fieldset>
   </div>
-  <p style="font-size:12.5px;color:#8a8272;margin:10px 2px 0;">عند اختيار "باختيار سورة البداية" تختارين سورة البداية وسورة النهاية، وتُبنى الخطة بينهما رجوعًا (السور المتاحة من الناس إلى الفاتحة).</p>
+
+  <div class="divider"></div>
+
+  <div id="cfgBlockA">
+    <h2 class="section-title" id="cfgTitleA"><span class="num">٢</span> بيانات الخطة</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="startDateA">تاريخ البداية</label>
+        <input type="date" id="startDateA">
+      </div>
+
+      <fieldset>
+        <legend>طريقة تحديد الخطة</legend>
+        <div class="radio-row">
+          <label class="radio-pill"><input type="radio" name="planModeA" value="juz" checked> باختيار الجزء</label>
+          <label class="radio-pill"><input type="radio" name="planModeA" value="surah"> باختيار سورة البداية</label>
+        </div>
+      </fieldset>
+
+      <div></div>
+
+      <div class="field" id="juzFieldA">
+        <div class="juz-label-row">
+          <label for="juzSelectA" id="juzLabelA">رقم الجزء</label>
+          <button type="button" class="info-btn" id="juzInfoBtnA" title="يمكنك اختيار أكثر من جزء" aria-label="معلومة عن اختيار الأجزاء">i</button>
+        </div>
+        <div class="info-pop" id="juzInfoPopA" style="display:none;">يمكنك اختيار أكثر من جزء</div>
+        <select id="juzSelectA"></select>
+        <div id="juzMultiWrapA" style="display:none;">
+          <div class="juz-multi" id="juzMultiA"></div>
+          <div class="juz-tools">
+            <button type="button" id="juzClearA">مسح الاختيار</button>
+            <span class="juz-count" id="juzCountA"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="surahFieldA" style="display:none;">
+        <label for="surahStartSelectA">تبدأ الخطة من سورة</label>
+        <select id="surahStartSelectA"></select>
+      </div>
+
+      <div class="field" id="surahEndFieldA" style="display:none;">
+        <label for="surahEndSelectA">تنتهي الخطة عند سورة</label>
+        <select id="surahEndSelectA"></select>
+      </div>
+
+      <div class="field">
+        <label for="amountSelectA" id="amountLegendA">مقدار الحفظ اليومي</label>
+        <select id="amountSelectA">
+          <option value="half">نصف صفحة</option>
+          <option value="full" selected>صفحة</option>
+        </select>
+      </div>
+
+      <fieldset>
+        <legend id="daysLegendA">أيام الحفظ</legend>
+        <div class="radio-row">
+          <label class="radio-pill"><input type="radio" name="daysA" value="daily" checked> كل يوم</label>
+          <label class="radio-pill"><input type="radio" name="daysA" value="sun-wed"> من الأحد إلى الأربعاء</label>
+          <label class="radio-pill"><input type="radio" name="daysA" value="sat-wed"> من السبت إلى الأربعاء</label>
+        </div>
+      </fieldset>
+    </div>
+    <p style="font-size:12.5px;color:#8a8272;margin:10px 2px 0;">عند اختيار "باختيار سورة البداية" تختارين سورة البداية وسورة النهاية، وتُبنى الخطة بينهما رجوعًا (السور المتاحة من الناس إلى الفاتحة).</p>
+  </div>
+
+  <div id="cfgBlockB" style="display:none;">
+    <div class="divider"></div>
+    <h2 class="section-title"><span class="num">٣</span> بيانات خطة المراجعة</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="startDateB">تاريخ البداية</label>
+        <input type="date" id="startDateB">
+      </div>
+
+      <fieldset>
+        <legend>طريقة تحديد الخطة</legend>
+        <div class="radio-row">
+          <label class="radio-pill"><input type="radio" name="planModeB" value="juz" checked> باختيار الجزء</label>
+          <label class="radio-pill"><input type="radio" name="planModeB" value="surah"> باختيار سورة البداية</label>
+        </div>
+      </fieldset>
+
+      <div></div>
+
+      <div class="field" id="juzFieldB">
+        <div class="juz-label-row">
+          <label for="juzSelectB" id="juzLabelB">رقم الجزء</label>
+          <button type="button" class="info-btn" id="juzInfoBtnB" title="يمكنك اختيار أكثر من جزء" aria-label="معلومة عن اختيار الأجزاء">i</button>
+        </div>
+        <div class="info-pop" id="juzInfoPopB" style="display:none;">يمكنك اختيار أكثر من جزء</div>
+        <select id="juzSelectB"></select>
+        <div id="juzMultiWrapB" style="display:none;">
+          <div class="juz-multi" id="juzMultiB"></div>
+          <div class="juz-tools">
+            <button type="button" id="juzClearB">مسح الاختيار</button>
+            <span class="juz-count" id="juzCountB"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="surahFieldB" style="display:none;">
+        <label for="surahStartSelectB">تبدأ الخطة من سورة</label>
+        <select id="surahStartSelectB"></select>
+      </div>
+
+      <div class="field" id="surahEndFieldB" style="display:none;">
+        <label for="surahEndSelectB">تنتهي الخطة عند سورة</label>
+        <select id="surahEndSelectB"></select>
+      </div>
+
+      <div class="field">
+        <label for="amountSelectB">مقدار المراجعة اليومي</label>
+        <select id="amountSelectB">
+          <option value="half">نصف صفحة</option>
+          <option value="full" selected>صفحة</option>
+        </select>
+      </div>
+
+      <fieldset>
+        <legend>أيام المراجعة</legend>
+        <div class="radio-row">
+          <label class="radio-pill"><input type="radio" name="daysB" value="daily" checked> كل يوم</label>
+          <label class="radio-pill"><input type="radio" name="daysB" value="sun-wed"> من الأحد إلى الأربعاء</label>
+          <label class="radio-pill"><input type="radio" name="daysB" value="sat-wed"> من السبت إلى الأربعاء</label>
+        </div>
+      </fieldset>
+    </div>
+    <p style="font-size:12.5px;color:#8a8272;margin:10px 2px 0;">خطة المراجعة مستقلة تمامًا عن خطة الحفظ أعلاه — اختاري لها الجزء أو السور والمقدار والأيام الخاصة بها.</p>
+  </div>
 
   <div class="divider"></div>
 
@@ -456,15 +631,9 @@
 <div id="plan-wrap"></div>
 
 <script>
-const JUZ_COUNT = 30;
-const juzSelect = document.getElementById('juzSelect');
-for(let i=1;i<=JUZ_COUNT;i++){
-  const opt = document.createElement('option');
-  opt.value = i;
-  opt.textContent = 'الجزء ' + arabicOrdinalNumber(i);
-  juzSelect.appendChild(opt);
-}
 function arabicOrdinalNumber(n){ return n.toLocaleString('ar-EG'); }
+const JUZ_COUNT = 30;
+const MAX_DAILY_PAGES = 60;
 
 // أسماء السور الـ114 بالترتيب (الفهرس = رقم السورة - 1)
 const SURAH_NAMES = [
@@ -482,49 +651,175 @@ const SURAH_NAMES = [
   'المسد','الإخلاص','الفلق','الناس'
 ];
 
-// قائمة اختيار سورة البداية: من الناس (114) إلى البقرة (2) — بدون الفاتحة كخيار بداية، لأن سورة النهاية قد تكون هي الفاتحة.
-const surahStartSelect = document.getElementById('surahStartSelect');
-for(let n=114; n>=2; n--){
-  const opt = document.createElement('option');
-  opt.value = n;
-  opt.textContent = 'سورة ' + SURAH_NAMES[n-1] + ' (' + n.toLocaleString('ar-EG') + ')';
-  surahStartSelect.appendChild(opt);
-}
+// يهيّئ مجموعة حقول خطة واحدة (جزء/سورة، مقدار، أيام، تاريخ) بحسب اللاحقة المعطاة ('A' أو 'B')،
+// بحيث تعمل خطة الحفظ وخطة المراجعة كل باستقلالية تامة عن الأخرى.
+function initPlanConfigBlock(suffix){
+  const juzSelect = document.getElementById('juzSelect'+suffix);
+  for(let i=1;i<=JUZ_COUNT;i++){
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = 'الجزء ' + arabicOrdinalNumber(i);
+    juzSelect.appendChild(opt);
+  }
 
-// قائمة اختيار سورة النهاية: تُبنى ديناميكيًا حسب سورة البداية المختارة (من سورة البداية نفسها نزولًا إلى الفاتحة)،
-// حتى لا يُسمح باختيار سورة نهاية بعد سورة البداية (لأن اتجاه الحفظ دائمًا من الأعلى رقمًا إلى الأقل).
-const surahEndSelect = document.getElementById('surahEndSelect');
-function populateSurahEndSelect(){
-  const startVal = parseInt(surahStartSelect.value, 10);
-  const prevSelected = surahEndSelect.value ? parseInt(surahEndSelect.value, 10) : 1;
-  surahEndSelect.innerHTML = '';
-  for(let n=startVal; n>=1; n--){
+  // شبكة اختيار أكثر من جزء (تُستخدم في خطة المراجعة فقط)
+  const juzMulti = document.getElementById('juzMulti'+suffix);
+  const juzCount = document.getElementById('juzCount'+suffix);
+  function updateJuzCount(){
+    const c = juzMulti.querySelectorAll('input:checked').length;
+    juzCount.textContent = c ? ('المختار: ' + c.toLocaleString('ar-EG') + (c === 1 ? ' جزء' : ' أجزاء')) : 'لم يُختر أي جزء بعد';
+  }
+  for(let i=1;i<=JUZ_COUNT;i++){
+    const lbl = document.createElement('label');
+    lbl.className = 'juz-chip';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = i;
+    cb.addEventListener('change', updateJuzCount);
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode('الجزء ' + arabicOrdinalNumber(i)));
+    juzMulti.appendChild(lbl);
+  }
+  document.getElementById('juzClear'+suffix).addEventListener('click', () => {
+    juzMulti.querySelectorAll('input').forEach(cb => { cb.checked = false; });
+    updateJuzCount();
+  });
+  updateJuzCount();
+
+  const amountSelect = document.getElementById('amountSelect'+suffix);
+  for(let n=2;n<=MAX_DAILY_PAGES;n++){
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = pagesCountLabel(n);
+    amountSelect.appendChild(opt);
+  }
+
+  // قائمة اختيار سورة البداية: من الناس (114) إلى البقرة (2) — بدون الفاتحة كخيار بداية، لأن سورة النهاية قد تكون هي الفاتحة.
+  const surahStartSelect = document.getElementById('surahStartSelect'+suffix);
+  for(let n=114; n>=2; n--){
     const opt = document.createElement('option');
     opt.value = n;
     opt.textContent = 'سورة ' + SURAH_NAMES[n-1] + ' (' + n.toLocaleString('ar-EG') + ')';
-    surahEndSelect.appendChild(opt);
+    surahStartSelect.appendChild(opt);
   }
-  // نحافظ على اختيار المستخدم السابق لسورة النهاية إن كان لا يزال ضمن النطاق الجديد، وإلا نرجع للفاتحة (١) افتراضيًا.
-  surahEndSelect.value = (prevSelected <= startVal) ? String(prevSelected) : '1';
-}
-populateSurahEndSelect();
-surahStartSelect.addEventListener('change', populateSurahEndSelect);
 
-// إظهار/إخفاء حقل الجزء أو حقلي سورة البداية والنهاية حسب طريقة التحديد المختارة
-const juzField = document.getElementById('juzField');
-const surahField = document.getElementById('surahField');
-const surahEndField = document.getElementById('surahEndField');
-document.querySelectorAll('input[name=planMode]').forEach(r => {
-  r.addEventListener('change', () => {
-    const mode = document.querySelector('input[name=planMode]:checked').value;
-    juzField.style.display = (mode === 'juz') ? '' : 'none';
-    surahField.style.display = (mode === 'surah') ? '' : 'none';
-    surahEndField.style.display = (mode === 'surah') ? '' : 'none';
+  // قائمة اختيار سورة النهاية: تُبنى ديناميكيًا حسب سورة البداية المختارة (من سورة البداية نفسها نزولًا إلى الفاتحة).
+  const surahEndSelect = document.getElementById('surahEndSelect'+suffix);
+  function populateSurahEndSelect(){
+    const startVal = parseInt(surahStartSelect.value, 10);
+    const prevSelected = surahEndSelect.value ? parseInt(surahEndSelect.value, 10) : 1;
+    surahEndSelect.innerHTML = '';
+    for(let n=startVal; n>=1; n--){
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = 'سورة ' + SURAH_NAMES[n-1] + ' (' + n.toLocaleString('ar-EG') + ')';
+      surahEndSelect.appendChild(opt);
+    }
+    surahEndSelect.value = (prevSelected <= startVal) ? String(prevSelected) : '1';
+  }
+  populateSurahEndSelect();
+  surahStartSelect.addEventListener('change', populateSurahEndSelect);
+
+  // إظهار/إخفاء حقل الجزء أو حقلي سورة البداية والنهاية حسب طريقة التحديد المختارة
+  const juzField = document.getElementById('juzField'+suffix);
+  const surahField = document.getElementById('surahField'+suffix);
+  const surahEndField = document.getElementById('surahEndField'+suffix);
+  document.querySelectorAll('input[name=planMode'+suffix+']').forEach(r => {
+    r.addEventListener('change', () => {
+      const mode = document.querySelector('input[name=planMode'+suffix+']:checked').value;
+      juzField.style.display = (mode === 'juz') ? '' : 'none';
+      surahField.style.display = (mode === 'surah') ? '' : 'none';
+      surahEndField.style.display = (mode === 'surah') ? '' : 'none';
+    });
+  });
+
+  // تاريخ البداية الافتراضي = اليوم
+  document.getElementById('startDate'+suffix).valueAsDate = new Date();
+}
+
+initPlanConfigBlock('A');
+initPlanConfigBlock('B');
+
+// يحدّد هل حقل الجزء في هذه الخطة يقبل اختيار أكثر من جزء (خطة المراجعة) أم جزءًا واحدًا فقط (خطة الحفظ).
+const juzMultiMode = { A:false, B:false };
+function setJuzMulti(suffix, on){
+  juzMultiMode[suffix] = on;
+  document.getElementById('juzField'+suffix).style.gridColumn = on ? '1 / -1' : '';
+  document.getElementById('juzSelect'+suffix).style.display = on ? 'none' : '';
+  document.getElementById('juzMultiWrap'+suffix).style.display = on ? '' : 'none';
+  document.getElementById('juzLabel'+suffix).textContent = on ? 'أرقام الأجزاء' : 'رقم الجزء';
+  document.getElementById('juzInfoBtn'+suffix).style.display = on ? 'flex' : 'none';
+  if(!on) document.getElementById('juzInfoPop'+suffix).style.display = 'none';
+}
+// أيقونة المعلومة: تضغط عليها فتظهر/تختفي رسالة "يمكنك اختيار أكثر من جزء"
+['A','B'].forEach(function(sfx){
+  const btn = document.getElementById('juzInfoBtn'+sfx);
+  const pop = document.getElementById('juzInfoPop'+sfx);
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    const open = pop.style.display === 'none';
+    pop.style.display = open ? '' : 'none';
+    btn.classList.toggle('open', open);
+  });
+  document.addEventListener('click', function(){
+    pop.style.display = 'none';
+    btn.classList.remove('open');
+  });
+});
+setJuzMulti('B', true); // خطة المراجعة في وضع "الاثنتان معًا"
+
+// ===== نوع الخطة: حفظ / مراجعة / الاثنتان معًا =====
+let planKind = 'memorize';
+
+const MODE_LABELS = {
+  memorize: {
+    title: 'مُنشئ خطة الحفظ',
+    sub: 'أدخل بيانات الطالب وسيتم توليد جدول حفظ كامل تلقائيًا من بيانات المصحف الشريف.',
+    generateBtn: 'إنشاء خطة الحفظ'
+  },
+  review: {
+    title: 'مُنشئ خطة المراجعة',
+    sub: 'أدخل بيانات الطالب وسيتم توليد جدول مراجعة كامل تلقائيًا من بيانات المصحف الشريف.',
+    generateBtn: 'إنشاء خطة المراجعة'
+  },
+  both: {
+    title: 'مُنشئ خطة الحفظ والمراجعة',
+    sub: 'أدخل بيانات الطالب، ثم حدّدي بيانات خطة الحفظ وبيانات خطة المراجعة كل على حدة (فقد تختلف السور والمقدار والأيام بينهما)، وسيتم توليد الخطتين معًا في ملف واحد.',
+    generateBtn: 'إنشاء خطتي الحفظ والمراجعة'
+  }
+};
+
+// تحدّث عناوين الصفحة وزر الإنشاء، وتُظهر/تُخفي قسم إعدادات خطة المراجعة المستقلة (قسم B)
+// حسب نوع الخطة المختار، وتُعيد تسمية قسم A (حفظ/مراجعة/حفظ عند اختيار الاثنتين).
+function applyKindLabels(kind){
+  const L = MODE_LABELS[kind];
+  document.getElementById('mainTitle').textContent = L.title;
+  document.getElementById('mainSub').textContent = L.sub;
+  document.getElementById('generateBtn').textContent = L.generateBtn;
+
+  const showBoth = kind === 'both';
+  document.getElementById('cfgBlockB').style.display = showBoth ? '' : 'none';
+
+  const wordA = (kind === 'review') ? 'مراجعة' : 'حفظ';
+  document.getElementById('cfgTitleA').innerHTML = showBoth
+    ? '<span class="num">٢</span> بيانات خطة الحفظ'
+    : '<span class="num">٢</span> بيانات الخطة';
+  setJuzMulti('A', kind === 'review'); // في خطة المراجعة المستقلة يمكن اختيار أكثر من جزء
+  document.getElementById('amountLegendA').textContent = 'مقدار ' + wordA + ' اليومي';
+  document.getElementById('daysLegendA').textContent = 'أيام ' + wordA;
+}
+
+document.querySelectorAll('.kind-btn').forEach(function(b){
+  b.addEventListener('click', function(){
+    planKind = this.getAttribute('data-kind');
+    applyKindLabels(planKind);
+    document.body.classList.remove('kind-pending');
   });
 });
 
-// default start date = today
-document.getElementById('startDate').valueAsDate = new Date();
+document.getElementById('changeKindBtn').addEventListener('click', function(){
+  document.body.classList.add('kind-pending');
+});
 
 const WEEKDAY_AR = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 
@@ -592,8 +887,8 @@ async function fetchJuzAyahs(juzNumber){
 // أو كانت آخر سورة تمتد إلى جزء لاحق (أي لا تنتهي بآيتها الأخيرة)، يجلب الجزء/الأجزاء
 // المجاورة ويكمّل بها آيات تلك السورة، بحيث تظهر كل سورة كاملة ضمن هذا الجزء ولا تُقطع.
 // ملاحظة: قد يتكرر هذا عبر أكثر من جزء مجاور للسور الطويلة الممتدة عبر عدة أجزاء.
-async function fetchJuzAyahsComplete(juzNumber){
-  const juzCache = {}; // تفادي إعادة جلب نفس الجزء أكثر من مرة
+async function fetchJuzAyahsComplete(juzNumber, sharedCache){
+  const juzCache = sharedCache || {}; // تفادي إعادة جلب نفس الجزء أكثر من مرة
   const getJuz = async (n) => {
     if(!juzCache[n]) juzCache[n] = await fetchJuzAyahs(n);
     return juzCache[n];
@@ -627,6 +922,23 @@ async function fetchJuzAyahsComplete(juzNumber){
   }
 
   return ayahs;
+}
+
+// يجلب آيات عدة أجزاء معًا (خطة المراجعة): يكمّل كل جزء سوره كما سبق، ثم يدمج النتائج
+// مع حذف الآيات المكررة (تتكرر عند تجاور جزأين تمتد سورة بينهما)، ويرتّبها بترتيب المصحف.
+async function fetchMultiJuzAyahs(juzList, onProgress){
+  const sorted = Array.from(new Set(juzList)).sort((a,b) => a-b);
+  const cache = {};
+  const map = new Map();
+  for(let i=0;i<sorted.length;i++){
+    if(onProgress) onProgress(i+1, sorted.length);
+    const ayahs = await fetchJuzAyahsComplete(sorted[i], cache);
+    ayahs.forEach(a => {
+      const key = a.surahNumber + ':' + a.ayahNumberInSurah;
+      if(!map.has(key)) map.set(key, a);
+    });
+  }
+  return Array.from(map.values()).sort((x,y) => x.surahNumber - y.surahNumber || x.ayahNumberInSurah - y.ayahNumberInSurah);
 }
 
 // يجلب آيات سورة واحدة كاملة عبر واجهة القرآن الكريم (تتضمن اسم السورة ورقم الصفحة لكل آية).
@@ -778,6 +1090,30 @@ function buildUnits(surahAyahs, amount){
 }
 
 
+// خطة المراجعة بعدد صفحات محدد (٢ صفحة فأكثر): نمشي على الصفحات الفعلية للمصحف بشكل متصل،
+// فيكون المقدار اليومي هو عدد الصفحات المختار بالضبط حتى لو عبر أكثر من سورة،
+// من آخر صفحة في النطاق المختار إلى أولها. الأجزاء غير المتجاورة لا تُدمج صفحاتها في يوم واحد.
+function buildReviewPageUnits(ayahs, N){
+  const pageGroups = groupByPage(ayahs); // تصاعديًا حسب رقم الصفحة
+  const runs = [];
+  pageGroups.forEach(g => {
+    const lastRun = runs[runs.length-1];
+    if(lastRun && g.page - lastRun[lastRun.length-1].page === 1) lastRun.push(g);
+    else runs.push([g]);
+  });
+  const units = [];
+  for(let r = runs.length - 1; r >= 0; r--){
+    const run = runs[r];
+    for(let end = run.length; end > 0; end -= N){
+      const slice = run.slice(Math.max(0, end - N), end);
+      let combined = [];
+      slice.forEach(g => { combined = combined.concat(g.ayahs); });
+      units.push({ ayahs: combined, half: null, pages: slice.map(g => g.page), pagesLabelOverride: pagesCountLabel(slice.length) });
+    }
+  }
+  return units;
+}
+
 function surahRangeLabel(ayahsList){
   const first = ayahsList[0];
   const last = ayahsList[ayahsList.length-1];
@@ -788,7 +1124,7 @@ function surahRangeLabel(ayahsList){
     return { surah:first.surahName, range: 'من آية ' + first.ayahNumberInSurah.toLocaleString('ar-EG') + ' إلى ' + last.ayahNumberInSurah.toLocaleString('ar-EG') };
   }
   return { surah: first.surahName + ' ← ' + last.surahName,
-           range: 'من آية ' + first.ayahNumberInSurah.toLocaleString('ar-EG') + ' إلى آية ' + last.ayahNumberInSurah.toLocaleString('ar-EG') };
+           range: 'من ' + first.surahName + ' آية ' + first.ayahNumberInSurah.toLocaleString('ar-EG') + ' إلى ' + last.surahName + ' آية ' + last.ayahNumberInSurah.toLocaleString('ar-EG') };
 }
 
 function pageLabel(pagesArr){
@@ -815,102 +1151,152 @@ function formatDateAr(d){
   return d.toLocaleDateString('ar-EG-u-nu-latn', { year:'numeric', month:'2-digit', day:'2-digit' });
 }
 
+function readPlanConfig(suffix){
+  const juzList = juzMultiMode[suffix]
+    ? Array.from(document.querySelectorAll('#juzMulti'+suffix+' input:checked')).map(cb => parseInt(cb.value,10)).sort((a,b) => a-b)
+    : [ parseInt(document.getElementById('juzSelect'+suffix).value,10) ];
+  return {
+    planMode: document.querySelector('input[name=planMode'+suffix+']:checked').value,
+    juz: juzList[0],
+    juzList: juzList,
+    surahStart: parseInt(document.getElementById('surahStartSelect'+suffix).value,10),
+    surahEnd: parseInt(document.getElementById('surahEndSelect'+suffix).value,10),
+    amount: document.getElementById('amountSelect'+suffix).value,
+    daysMode: document.querySelector('input[name=days'+suffix+']:checked').value,
+    startDateVal: document.getElementById('startDate'+suffix).value
+  };
+}
+
+function validatePlanConfig(cfg, label){
+  if(!cfg.startDateVal) return 'الرجاء تحديد تاريخ بداية ' + label + '.';
+  if(cfg.planMode === 'juz' && (!cfg.juzList || cfg.juzList.length === 0)) return 'الرجاء اختيار جزء واحد على الأقل في ' + label + '.';
+  if(cfg.planMode === 'surah' && cfg.surahEnd > cfg.surahStart) return 'سورة النهاية يجب أن تكون في نفس سورة البداية أو قبلها في ' + label + '.';
+  return null;
+}
+
+// يبني قائمة أيام الخطة (rows) لإعداد واحد (جزء/سورة، مقدار، أيام، تاريخ بداية) بشكل مستقل تمامًا.
+async function buildRowsForConfig(cfg, progressLabel, statusEl, isReview){
+  statusEl.textContent = cfg.planMode === 'juz'
+    ? (cfg.juzList.length > 1 ? 'جارٍ جلب بيانات الأجزاء' : 'جارٍ جلب بيانات الجزء') + progressLabel + ' من واجهة القرآن الكريم...'
+    : 'جارٍ جلب بيانات السور' + progressLabel + ' من واجهة القرآن الكريم...';
+
+  const ayahs = cfg.planMode === 'juz'
+    ? await fetchMultiJuzAyahs(cfg.juzList, (n, total) => {
+        if(total > 1) statusEl.textContent = 'جارٍ جلب الأجزاء' + progressLabel + '... (' + n.toLocaleString('ar-EG') + ' من ' + total.toLocaleString('ar-EG') + ')';
+      })
+    : await fetchSurahRangeAyahs(cfg.surahStart, cfg.surahEnd, (n, total) => {
+        statusEl.textContent = 'جارٍ جلب السور' + progressLabel + '... (' + n.toLocaleString('ar-EG') + ' من ' + total.toLocaleString('ar-EG') + ')';
+      });
+
+  // نبدأ من آخر سورة ونتراجع نحو أول سورة، على أن يبدأ حفظ كل سورة من أول آية فيها.
+  const surahGroups = groupBySurah(ayahs).reverse();
+  let units = [];
+
+  // السور القصيرة (من الضحى ٩٣ إلى الناس ١١٤) تُعامَل بمقياس خاص (بالصفحات) أينما وردت ضمن النطاق المختار.
+  // في خطة المراجعة، إن اختيرت صفحتان فأكثر، يكون المقدار اليومي عدد الصفحات المختار بالضبط (بدون مقياس السور القصيرة).
+  const pageBased = !!isReview && cfg.amount !== 'half' && cfg.amount !== 'full' && parseInt(cfg.amount, 10) >= 2;
+  const hasShortSurahs = !pageBased && surahGroups.some(sg => sg.surahNumber >= SHORT_SURAHS_FROM && sg.surahNumber <= SHORT_SURAHS_TO);
+
+  if(pageBased){
+    units = buildReviewPageUnits(ayahs, parseInt(cfg.amount, 10));
+  } else if(hasShortSurahs){
+    // نجمع آيات نطاق السور القصيرة معًا (قد تمتد عبر عدة سور متتالية) ونبني وحدات صفحات لها،
+    // وما تبقى من الجزء يُعامل بالطريقة المعتادة (صفحة/نصف صفحة).
+    const targetPages = cfg.amount === 'half' ? 2 : (cfg.amount === 'full' ? 4 : parseInt(cfg.amount, 10) * 4);
+    let specialBatch = [];
+    const flushSpecial = () => {
+      if(specialBatch.length){
+        units.push(...buildSpecialUnits(specialBatch, targetPages));
+        specialBatch = [];
+      }
+    };
+    surahGroups.forEach(sg => {
+      if(sg.surahNumber >= SHORT_SURAHS_FROM && sg.surahNumber <= SHORT_SURAHS_TO){
+        specialBatch.push(...sg.ayahs);
+      } else {
+        flushSpecial();
+        units.push(...buildUnits(sg.ayahs, cfg.amount));
+      }
+    });
+    flushSpecial();
+  } else {
+    surahGroups.forEach(sg => {
+      units.push(...buildUnits(sg.ayahs, cfg.amount));
+    });
+  }
+
+  units.forEach(u => { u.endsSurah = marksEndOfSurah(u.ayahs); });
+
+  // schedule dates
+  let currentDate = new Date(cfg.startDateVal + 'T00:00:00');
+  // If chosen mode excludes Thu/Fri/Sat, make sure the very first day itself is valid; if not, push forward.
+  if(cfg.daysMode === 'sun-wed'){
+    while(currentDate.getDay() === 4 || currentDate.getDay() === 5 || currentDate.getDay() === 6){
+      currentDate = nextValidDate(currentDate, cfg.daysMode);
+    }
+  } else if(cfg.daysMode === 'sat-wed'){
+    while(currentDate.getDay() === 4 || currentDate.getDay() === 5){
+      currentDate = nextValidDate(currentDate, cfg.daysMode);
+    }
+  }
+
+  const rows = units.map((u, idx) => {
+    const dateForRow = new Date(currentDate);
+    const label = surahRangeLabel(u.ayahs);
+    const row = {
+      dayIndex: idx+1,
+      date: dateForRow,
+      pageLabel: pageLabel(u.pages),
+      surah: label.surah,
+      range: label.range,
+      amountLabel: u.pagesLabelOverride ? u.pagesLabelOverride : (cfg.amount === 'full' ? 'صفحة كاملة' : (u.half === 'كاملة' ? 'صفحة كاملة' : u.half)),
+      endsSurah: u.endsSurah,
+      lastAyahNumber: u.ayahs[u.ayahs.length-1].ayahNumberInSurah
+    };
+    currentDate = nextValidDate(currentDate, cfg.daysMode);
+    return row;
+  });
+
+  return { rows, hasShortSurahs, pageBased };
+}
+
 async function generatePlan(){
   const name = document.getElementById('studentName').value.trim();
-  const planMode = document.querySelector('input[name=planMode]:checked').value;
-  const juz = parseInt(juzSelect.value,10);
-  const surahStart = parseInt(surahStartSelect.value,10);
-  const surahEnd = parseInt(surahEndSelect.value,10);
-  const amount = document.querySelector('input[name=amount]:checked').value;
-  const daysMode = document.querySelector('input[name=days]:checked').value;
-  const startDateVal = document.getElementById('startDate').value;
   const statusEl = document.getElementById('statusMsg');
   const btn = document.getElementById('generateBtn');
 
   if(!name){ statusEl.textContent='الرجاء إدخال اسم الطالب.'; statusEl.className='status err'; return; }
-  if(!startDateVal){ statusEl.textContent='الرجاء تحديد تاريخ البداية.'; statusEl.className='status err'; return; }
-  if(planMode === 'surah' && surahEnd > surahStart){ statusEl.textContent='سورة النهاية يجب أن تكون في نفس سورة البداية أو قبلها.'; statusEl.className='status err'; return; }
+
+  const cfgA = readPlanConfig('A');
+  const errA = validatePlanConfig(cfgA, planKind === 'both' ? 'خطة الحفظ' : 'الخطة');
+  if(errA){ statusEl.textContent = errA; statusEl.className='status err'; return; }
+
+  let cfgB = null;
+  if(planKind === 'both'){
+    cfgB = readPlanConfig('B');
+    const errB = validatePlanConfig(cfgB, 'خطة المراجعة');
+    if(errB){ statusEl.textContent = errB; statusEl.className='status err'; return; }
+  }
 
   statusEl.className='status';
-  statusEl.textContent = planMode === 'juz'
-    ? 'جارٍ جلب بيانات الجزء من واجهة القرآن الكريم...'
-    : 'جارٍ جلب بيانات السور من واجهة القرآن الكريم...';
   btn.disabled = true;
 
   try{
-    const ayahs = planMode === 'juz'
-      ? await fetchJuzAyahsComplete(juz)
-      : await fetchSurahRangeAyahs(surahStart, surahEnd, (n, total) => {
-          statusEl.textContent = 'جارٍ جلب السور... (' + n.toLocaleString('ar-EG') + ' من ' + total.toLocaleString('ar-EG') + ')';
-        });
+    const wordA = (planKind === 'review') ? 'مراجعة' : 'حفظ';
+    const resultA = await buildRowsForConfig(cfgA, planKind === 'both' ? ' (خطة الحفظ)' : '', statusEl, planKind === 'review');
+    const sheets = [ Object.assign({ name: name, word: wordA }, cfgA, resultA) ];
 
-    // نبدأ من آخر سورة ونتراجع نحو أول سورة، على أن يبدأ حفظ كل سورة من أول آية فيها.
-    const surahGroups = groupBySurah(ayahs).reverse();
-    let units = [];
-
-    // السور القصيرة (من الضحى ٩٣ إلى الناس ١١٤) تُعامَل بمقياس خاص (بالصفحات) أينما وردت ضمن النطاق المختار.
-    const hasShortSurahs = surahGroups.some(sg => sg.surahNumber >= SHORT_SURAHS_FROM && sg.surahNumber <= SHORT_SURAHS_TO);
-
-    if(hasShortSurahs){
-      // نجمع آيات نطاق السور القصيرة معًا (قد تمتد عبر عدة سور متتالية) ونبني وحدات صفحات لها،
-      // وما تبقى من الجزء يُعامل بالطريقة المعتادة (صفحة/نصف صفحة).
-      const targetPages = amount === 'half' ? 2 : (amount === 'full' ? 4 : parseInt(amount, 10) * 4);
-      let specialBatch = [];
-      const flushSpecial = () => {
-        if(specialBatch.length){
-          units.push(...buildSpecialUnits(specialBatch, targetPages));
-          specialBatch = [];
-        }
-      };
-      surahGroups.forEach(sg => {
-        if(sg.surahNumber >= SHORT_SURAHS_FROM && sg.surahNumber <= SHORT_SURAHS_TO){
-          specialBatch.push(...sg.ayahs);
-        } else {
-          flushSpecial();
-          units.push(...buildUnits(sg.ayahs, amount));
-        }
-      });
-      flushSpecial();
-    } else {
-      surahGroups.forEach(sg => {
-        units.push(...buildUnits(sg.ayahs, amount));
-      });
+    if(planKind === 'both'){
+      const resultB = await buildRowsForConfig(cfgB, ' (خطة المراجعة)', statusEl, true);
+      sheets.push(Object.assign({ name: name, word: 'مراجعة' }, cfgB, resultB));
     }
 
-    units.forEach(u => { u.endsSurah = marksEndOfSurah(u.ayahs); });
+    renderPlan(sheets);
 
-    // schedule dates
-    let currentDate = new Date(startDateVal + 'T00:00:00');
-    // If chosen mode excludes Thu/Fri/Sat, make sure the very first day itself is valid; if not, push forward.
-    if(daysMode === 'sun-wed'){
-      while(currentDate.getDay() === 4 || currentDate.getDay() === 5 || currentDate.getDay() === 6){
-        currentDate = nextValidDate(currentDate, daysMode);
-      }
-    } else if(daysMode === 'sat-wed'){
-      while(currentDate.getDay() === 4 || currentDate.getDay() === 5){
-        currentDate = nextValidDate(currentDate, daysMode);
-      }
-    }
-
-    const rows = units.map((u, idx) => {
-      const dateForRow = new Date(currentDate);
-      const label = surahRangeLabel(u.ayahs);
-      const row = {
-        dayIndex: idx+1,
-        date: dateForRow,
-        pageLabel: pageLabel(u.pages),
-        surah: label.surah,
-        range: label.range,
-        amountLabel: u.pagesLabelOverride ? u.pagesLabelOverride : (amount === 'full' ? 'صفحة كاملة' : (u.half === 'كاملة' ? 'صفحة كاملة' : u.half)),
-        endsSurah: u.endsSurah,
-        lastAyahNumber: u.ayahs[u.ayahs.length-1].ayahNumberInSurah
-      };
-      currentDate = nextValidDate(currentDate, daysMode);
-      return row;
-    });
-
-    renderPlan({ name, planMode, juz, surahStart, surahEnd, amount, daysMode, rows, hasShortSurahs });
-    statusEl.textContent = 'تم إنشاء الخطة بنجاح — عدد الأيام: ' + rows.length.toLocaleString('ar-EG');
+    const totalDays = sheets.reduce((sum, s) => sum + s.rows.length, 0);
+    statusEl.textContent = planKind === 'both'
+      ? 'تم إنشاء الخطتين بنجاح — إجمالي عدد الأيام: ' + totalDays.toLocaleString('ar-EG')
+      : 'تم إنشاء الخطة بنجاح — عدد الأيام: ' + totalDays.toLocaleString('ar-EG');
     document.getElementById('printBtn').style.display = 'inline-block';
   }catch(err){
     console.error(err);
@@ -923,14 +1309,15 @@ async function generatePlan(){
   }
 }
 
-function renderPlan({name, planMode, juz, surahStart, surahEnd, amount, daysMode, rows, hasShortSurahs}){
-  const wrap = document.getElementById('plan-wrap');
+function buildPlanSheetHtml({name, planMode, juz, juzList, surahStart, surahEnd, amount, daysMode, rows, hasShortSurahs, pageBased, word}){
   const today = new Date();
 
   const daysModeLabel = daysMode === 'daily' ? 'كل يوم' : (daysMode === 'sun-wed' ? 'من الأحد إلى الأربعاء' : 'من السبت إلى الأربعاء');
   const amountModeLabel = amount === 'full' ? 'صفحة يوميًا' : (amount === 'half' ? 'نصف صفحة يوميًا' : pagesCountLabel(parseInt(amount,10)) + ' يوميًا');
   const scopeLabel = planMode === 'juz'
-    ? 'الجزء: <b>' + juz.toLocaleString('ar-EG') + '</b>'
+    ? ((juzList && juzList.length > 1)
+        ? 'الأجزاء: <b>' + juzList.map(j => j.toLocaleString('ar-EG')).join('، ') + '</b>'
+        : 'الجزء: <b>' + juz.toLocaleString('ar-EG') + '</b>')
     : 'من سورة <b>' + SURAH_NAMES[surahStart-1] + '</b> إلى سورة <b>' + SURAH_NAMES[surahEnd-1] + '</b>';
 
   const rowsHtml = rows.map(r => {
@@ -949,17 +1336,22 @@ function renderPlan({name, planMode, juz, surahStart, surahEnd, amount, daysMode
     </tr>`;
   }).join('');
 
-  wrap.innerHTML = `
+  const verb = word === 'حفظ' ? 'حفظ' : 'مراجعة';
+  const juzNote = planMode === 'juz'
+    ? 'ملاحظة: أي سورة تبدأ أو تنتهي داخل ' + ((juzList && juzList.length > 1) ? 'هذه الأجزاء' : 'هذا الجزء') + ' تُ' + (word === 'حفظ' ? 'حفظ' : 'راجَع') + ' كاملة، حتى لو كان جزء منها يقع أصلًا ضمن جزء مجاور.'
+    : '';
+
+  return `
   <div class="plan-sheet">
     <div class="plan-header">
       <div>
-        <h3>خطة حفظ القرآن الكريم</h3>
+        <h3>خطة ${word} القرآن الكريم</h3>
         <div class="meta">
           حلقة نشاط النسيم<br>
           الطالب: <b>${escapeHtml(name)}</b> &nbsp;|&nbsp; ${scopeLabel}<br>
-          نظام الحفظ: <b>${amountModeLabel}</b> &nbsp;|&nbsp; أيام الحفظ: <b>${daysModeLabel}</b><br>
-          اتجاه الحفظ: <b>من آخر سورة في النطاق المختار إلى أولها، وحفظ كل سورة يبدأ من آيتها الأولى</b><br>
-          ${planMode === 'juz' ? 'ملاحظة: أي سورة تبدأ أو تنتهي داخل هذا الجزء تُحفظ كاملة، حتى لو كان جزء منها يقع أصلًا ضمن جزء مجاور.' : ''}
+          نظام ${word}: <b>${amountModeLabel}</b> &nbsp;|&nbsp; أيام ${word}: <b>${daysModeLabel}</b><br>
+          اتجاه ${word}: <b>${pageBased ? 'من آخر صفحة في النطاق المختار إلى أولها، بواقع ' + amountModeLabel : 'من آخر سورة في النطاق المختار إلى أولها، و' + verb + ' كل سورة يبدأ من آيتها الأولى'}</b><br>
+          ${juzNote}
           ${hasShortSurahs ? '<br>ملاحظة: في السور القصيرة (من الضحى إلى الناس) يُحتسب المقدار اليومي بعدد الصفحات (صفحتان بدل نصف صفحة، أو 4 صفحات بدل صفحة كاملة).' : ''}
         </div>
       </div>
@@ -991,7 +1383,17 @@ function renderPlan({name, planMode, juz, surahStart, surahEnd, amount, daysMode
       <div class="sig-box">توقيع ولي الأمر</div>
     </div>
     <div class="footnote">تم إنشاء هذه الخطة تلقائيًا — حلقة نشاط النسيم لتحفيظ القرآن الكريم</div>
+    <div class="footnote contact-footnote">مسؤول لجنة القرآنية لأي استفسار: عبدالعزيز الديني — جوال: 0565852478</div>
   </div>`;
+}
+
+function renderPlan(sheets){
+  const wrap = document.getElementById('plan-wrap');
+
+  wrap.innerHTML = sheets.map((sheet, idx) => {
+    const html = buildPlanSheetHtml(sheet);
+    return idx > 0 ? html.replace('<div class="plan-sheet">', '<div class="plan-sheet page-break">') : html;
+  }).join('');
 
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
